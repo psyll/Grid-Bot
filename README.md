@@ -2,9 +2,9 @@
 
 ![alt text](images/header.jpg)
 
-## Overview
+## Over[view](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>)
 
-Grid Bot is an advanced Pine Script strategy developed for TradingView, designed to elevate automated grid trading to a new standard of precision and adaptability. This script incorporates a sophisticated parameter system and a modular plugin architecture, empowering traders to dynamically configure grid ranges and exercise comprehensive control over order placement and execution. In contrast to traditional grid strategies, which often falter in volatile or unpredictable market environments, Grid Bot emphasizes resilience and extensibility. It provides a robust framework that maintains stability across diverse market conditions while facilitating seamless integration of custom enhancements.
+Grid Bot is an advanced Pine Script strategy developed for Trading[View](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>), designed to elevate automated grid trading to a new standard of precision and adaptability. This script incorporates a sophisticated parameter system and a modular plugin architecture, empowering traders to dynamically configure grid ranges and exercise comprehensive control over order placement and execution. In contrast to traditional grid strategies, which often falter in volatile or unpredictable market environments, Grid Bot emphasizes resilience and extensibility. It provides a robust framework that maintains stability across diverse market conditions while facilitating seamless integration of custom enhancements.
 
 By releasing Grid Bot as freeware, the developer, Psyll, aims to deliver a professional-grade tool that serves multiple purposes: as a reference implementation for educational insights into algorithmic trading, as a production-ready solution for active deployment in live trading scenarios, and as a foundational platform for ongoing research and development. This strategy is particularly suited for traders seeking to optimize their approaches in range-bound markets, where grid trading can capitalize on price oscillations within defined boundaries. The modular design encourages community contributions, allowing users to build upon the core functionality with personalized plugins tailored to specific trading styles or asset classes.
 
@@ -19,11 +19,11 @@ Grid Bot's core philosophy revolves around user empowerment through flexibility.
 ## Getting Started - Initial setup
 
 
-To initiate Grid Bot on a TradingView chart, begin by adding the script to your selected asset's chart. Upon activation, the script will prompt you with an instructional message: `Set the "start" time for "Grid Bot [psyll]".` At this stage, interact with the chart by clicking to designate the precise timestamp at which the strategy should commence operations. This interactive setup ensures that the bot aligns with your intended trading session, accounting for historical data and real-time market entry points.
+To initiate Grid Bot on a Trading[View](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>) chart, begin by adding the script to your selected asset's chart. Upon activation, the script will prompt you with an instructional message: `Set the "start" time for "Grid Bot [psyll]".` At this stage, interact with the chart by clicking to designate the precise timestamp at which the strategy should commence operations. This interactive setup ensures that the bot aligns with your intended trading session, accounting for historical data and real-time market entry points.
 
 Following the start time selection, the script will request the definition of the grid's vertical boundaries. You will see prompts for `select grid high range` and `select grid low range.` Respond by clicking on the chart to mark the upper and lower price levels that delineate the grid's operational zone. These selections are critical, as they establish the range within which the bot will place and manage orders. To facilitate informed decision-making, consider incorporating technical indicators such as support and resistance levels, moving averages, or Fibonacci retracements when choosing these points.
 
-Once the grid boundaries are set, Grid Bot will present a confirmation dialog summarizing the provided parameters, including the start time and grid ranges. Review this information carefully for accuracy, as it forms the basis of the strategy's execution. Accepting the parameters activates the bot, initiating monitoring of price movements within the defined grid. This user-friendly onboarding process minimizes setup complexity while ensuring transparency and control from the outset.
+Once the grid boundaries are set, Grid Bot will present a confirmation dialog summarizing the provided parameters, including the start time and grid ranges. Re[view](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>) this information carefully for accuracy, as it forms the basis of the strategy's execution. Accepting the parameters activates the bot, initiating monitoring of price movements within the defined grid. This user-friendly onboarding process minimizes setup complexity while ensuring transparency and control from the outset.
 
 ![Initial setup](images/initial.gif)
 
@@ -44,7 +44,7 @@ Grid Bot offers a comprehensive suite of configurable settings, categorized for 
 
 These options govern the visual representation of the strategy on the chart, enhancing interpretability without cluttering the interface.
 
-- **Positions Table:** Enables the display of a detailed table summarizing active positions, including entry prices, quantities, profit/loss metrics, and status updates. This feature is invaluable for real-time monitoring, providing a consolidated view that aids in quick decision-making during live sessions.
+- **Positions Table:** Enables the display of a detailed table summarizing active positions, including entry prices, quantities, profit/loss metrics, and status updates. This feature is invaluable for real-time monitoring, providing a consolidated [view](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>) that aids in quick decision-making during live sessions.
 - **Grid Lines:** Toggles the visibility of horizontal lines representing the grid levels. When activated, these lines clearly demarcate the trading zones, assisting in visual confirmation of price interactions with grid boundaries.
 - **Color Candles:** Applies color coding to candlesticks based on the direction of open positions (e.g., green for longs, red for shorts). This intuitive visualization helps traders gauge market sentiment and position bias at a glance, complementing other technical tools.
 
@@ -119,28 +119,39 @@ Grid Bot's extensibility shines through its plugin system, which allows integrat
 ### Grid Range Plugins
 These plugins transition grid boundaries from static to dynamic management. Users can assign independent plugins for Top/Bottom and Middle separately, drawing from indicators like moving averages or volatility metrics to auto-adjust ranges in response to market shifts.
 
-| Plugin name    | Code | Screenshot |
-| -------- | ------- | ------- |
-| Z-Score  |  View   | ![alt text](images/plugin_z-score.jpg) |
-| February | $80     | ------- |
-| March    | $420    | ------- |
-
+| Plugin name          | Code                                                                             | Screenshot                                                                        |
+| -------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Z-Score              | [View](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>)              | ![Z-Score Plugin Screenshot](images/plugin_z-score.jpg)                           |
+| Two Moving Avarages  | [View](<plugins/Grid Bot [Grid range plugin] Two Moving Avarages [psyll].pine>)  | ![Two Moving Avarages Plugin Screenshot](images/plugin_two-moving-avarages.jpg)   |
+| Supertrend Channel   | [View](<plugins/Grid Bot [Grid range plugin] Supertrend Channel [psyll].pine>)   | ![Supertrend Channel Plugin Screenshot](images/plugin_supertrend_channel.jpg)     |
+| RSI Channel          | [View](<plugins/Grid Bot [Grid range plugin] RSI Channel [psyll].pine>)          | ![RSI Channel Plugin Screenshot](images/plugin_rsi_channel.jpg)                   |
+| Predictive Ranges    | [View](<plugins/Grid Bot [Grid range plugin] Predictive Ranges [psyll].pine>)    | ![Predictive Ranges Plugin Screenshot](images/plugin_predictive_ranges.jpg)       |
+| Murrey Lines         | [View](<plugins/Grid Bot [Grid range plugin] Murrey Lines [psyll].pine>)         | ![Murrey Lines Plugin Screenshot](images/plugin_murrey_line.jpg)                  |
+| Moving Avarage StDev | [View](<plugins/Grid Bot [Grid range plugin] Moving Avarage StDev [psyll].pine>) | ![Moving Avarage StDev Plugin Screenshot](images/plugin_moving_avarage_stdev.jpg) |
+| High/Low             | [View](<plugins/Grid Bot [Grid range plugin] HighLow [psyll].pine>)              | ![High/Low Plugin Screenshot](images/plugin_highlow.jpg)                          |
+| Bollinger Bands      | [View](<plugins/Grid Bot [Grid range plugin] Bollinger Bands [psyll].pine>)      | ![Bollinger Bands Plugin Screenshot](images/plugin_bollinger_bands.jpg)           |
 
 ### Direction Plugins
+
 Enable runtime switching of trading directions based on external signals, such as trend indicators or sentiment analysis, promoting adaptive strategies that respond to real-time data.
+
+| Plugin name      | Code                                                                        | Screenshot                                                                |
+| ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Supertrend Pivot | [View](<plugins/Grid Bot [Direction plugin] Supertrend Pivot [psyll].pine>) | ![Supertrend Pivot Plugin Screenshot](images/plugin_supertrend_pivot.jpg) |
+| Price Deviation  | [View](<plugins/Grid Bot [Direction plugin] Price Deviation [psyll].pine>)  | ![Price Deviation Plugin Screenshot](images/plugin_price_deviation.jpg)   |
 
 ### Controller Plugins
 
-Facilitate granular order management, including opening, closing, or blocking trades via custom logic. This is ideal for incorporating advanced risk controls or hybrid strategies.
+Facilitate granular order management, including opening, closing or blocking trades via custom logic. This is ideal for incorporating advanced risk controls or hybrid strategies.
 
-
+| Plugin name | Code                                                                | Screenshot                                                |
+| ----------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| Big Move    | [View](<plugins/Grid Bot [Controler plugin] Big Move [psyll].pine>) | ![Big Move Plugin Screenshot](images/plugin_big_move.jpg) |
 
 ## Live Trading via Psyll.com Webhooks
 
 :link: Visit [ Psyll.com Webhook](https://psyll.com/en/webhook) page at https://psyll.com/en/webhoo
 
-
-Grid Bot can be extended beyond simulation and backtesting by integrating it with live trading environments through TradingView's alert system and Psyll.com's webhook functionality. This integration enables the execution of real orders on supported exchanges without incurring additional costs for basic usage, leveraging a free tier that facilitates automated trading strategies in production settings.
-
+Grid Bot can be extended beyond simulation and backtesting by integrating it with live trading environments through Trading[View](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>)'s alert system and Psyll.com's webhook functionality. This integration enables the execution of real orders on supported exchanges without incurring additional costs for basic usage, leveraging a free tier that facilitates automated trading strategies in production settings.
 
 ![alt text](images/webhook.jpg)

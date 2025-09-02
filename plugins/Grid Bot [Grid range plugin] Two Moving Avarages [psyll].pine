@@ -3,7 +3,7 @@
 // Email: info@psyll.com
 // Website: https://psyll.com
 // Copyright: Copyright © 2025 psyll.com. All rights reserved.
-indicator('Grid Bot [Grid range plugin] Z-Score [psyll]', overlay = false)
+indicator('Grid Bot [Grid range plugin] Two Moving Avarages [psyll]', overlay = false)
 ma(ma_type, ma_source, ma_length) =>
     float result = 0
     if ma_type == 'EMA'
@@ -42,9 +42,10 @@ while tick_size < 1
     decimal_places
 settings_group = 'Settings #################################################'
 ma_type = input.string('SMA', 'Type', options = ['SMA', 'EMA', 'WMA', 'HMA', 'RMA', 'VWMA', 'DEMA', 'TEMA', 'ZLEMA'], group = settings_group, display = display.none)
-length = input.int(500, 'Length', minval = 1, group = settings_group, display = display.none)
+fastLength = input(10, title = 'Fast EMA Length', group = settings_group, display = display.none)
+slowLength = input(20, title = 'Slow EMA Length', group = settings_group, display = display.none)
 source = input.source(defval = close, title = 'Source', group = settings_group, display = display.none)
-stddevs = input.float(1.69, 'Stddevs', group = settings_group, display = display.none)
+deviations = input(2.0, title = 'Number of Deviations', group = settings_group, display = display.none)
 offset = input.float(1, 'Offset', group = settings_group, display = display.none)
 width_min = input.float(0, 'Min width', group = settings_group, display = display.none)
 width_max = input.float(99999, 'Max width', group = settings_group, display = display.none)
@@ -67,15 +68,12 @@ display_group = 'Display ##################################################'
 price_color = input.color(color.black, 'Candles color', display = display.none, group = display_group)
 // Plot pricecandle
 plotcandle(open, high, low, close, color = price_color, bordercolor = price_color, wickcolor = price_color, display = display.pane)
-basis = tf_security(ma(ma_type, source, length))
-zscore = (source - basis) / tf_security(ta.stdev(source, length))
-diff = math.abs(source - basis)
-absZscore = math.abs(zscore)
-bounds = diff / absZscore * stddevs
-grid_high = basis + bounds
-grid_low = basis - bounds
-grid_high := grid_high + offset
-grid_low := grid_low - offset
+fastEMA = tf_security(ma(ma_type, source, fastLength))
+slowEMA = tf_security(ma(ma_type, source, slowLength))
+combinedEMA = (fastEMA + slowEMA) / 2
+priceDeviation = deviations * tf_security(ta.stdev(combinedEMA, slowLength))
+grid_high = combinedEMA + priceDeviation + offset
+grid_low = combinedEMA - priceDeviation - offset
 grid_middle = (grid_high + grid_low) / 2
 if grid_high - grid_low < width_min
     grid_high := grid_middle + width_min_half

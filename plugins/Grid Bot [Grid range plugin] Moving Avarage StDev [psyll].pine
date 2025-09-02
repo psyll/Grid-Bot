@@ -1,0 +1,123 @@
+//@version=6
+// Author: Psyll.com
+// Email: info@psyll.com
+// Website: https://psyll.com
+// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+
+indicator('Grid Bot [Grid range plugin] Moving Avarage StDev [psyll]', overlay = false)
+group_ma = 'MA'
+ma_type = input.string(defval = 'EMA - Exponential Moving Average', title = 'Type', group = group_ma, display = display.none, options = ['EMA - Exponential Moving Average', 'SMA - Simple Moving Average', 'RMA - Relative Moving Average', 'HMA - Hull Moving Average', 'WMA - Weighted Moving Average', 'VWMA - Volume-Weighted Moving Average', 'DEMA - Double Exponential Moving Average', 'TEMA - Triple Exponential Moving Average', 'ZLEMA - Zero-Lag Exponential Moving Average', 'TMA - Triangular Moving Average', 'XEMA - Exponential Moving Average Optimized', 'KAMA - Kaufmans Adaptive Moving Average', 'FRAMA - Fractal Reactive Moving Average', 'DONCHIAN - Donchian', 'DONCHIAN2 - Donchian V2', 'FIBMA - Fibonacci Moving Average', 'GMMA - Guppy Multiple Moving Average'])
+ma_length = input.int(500, 'Length', minval = 1, group = group_ma, display = display.none)
+ma_source = input.source(defval = close, title = 'Source', group = group_ma, display = display.none)
+deviations = input(2.0, title = 'Number of Deviations', group = group_ma)
+offset = input.float(1, 'Offset', group = group_ma, display = display.none)
+ma_tf_confirmation_wait = input.bool(defval = true, title = 'Wait for confirm', group = group_ma, inline = group_ma, display = display.none)
+ma_tf_no_repaint_security = input.bool(defval = true, title = 'No repaint', group = group_ma, inline = group_ma, display = display.none)
+ma_tf_barmerge_lookahead = input.bool(defval = false, title = 'Lookahead', group = group_ma, inline = group_ma, display = display.none)
+ma_tf_barmerge_gaps = input.bool(defval = false, title = 'Gaps', group = group_ma, inline = group_ma, display = display.none)
+ma_tf_type = input.string(title = 'Type', options = ['Static', 'Custom'], defval = 'Static', group = group_ma, display = display.none)
+ma_tf_static = input.timeframe(defval = '', title = 'Static', group = group_ma, display = display.none)
+ma_tf_custom = str.tostring(input.int(1, 'Custom', group = group_ma, display = display.none))
+ma_tf_type_value = switch ma_tf_type
+    'Static' => ma_tf_static
+    'Custom' => ma_tf_custom
+ma_tf_security(source) =>
+    request.security(syminfo.tickerid, ma_tf_type_value, ma_tf_no_repaint_security ? source[barstate.isrealtime ? 1 : 0] : source, gaps = ma_tf_barmerge_gaps ? barmerge.gaps_on : barmerge.gaps_off, lookahead = ma_tf_barmerge_lookahead ? barmerge.lookahead_on : barmerge.lookahead_off)[ma_tf_no_repaint_security ? barstate.isrealtime ? 0 : 1 : 0]
+ma() =>
+    float result = 0
+    if ma_type == 'EMA - Exponential Moving Average'
+        result := ta.ema(ma_source, ma_length)
+        result
+    if ma_type == 'SMA - Simple Moving Average'
+        result := ta.sma(ma_source, ma_length)
+        result
+    if ma_type == 'RMA - Relative Moving Average'
+        result := ta.rma(ma_source, ma_length)
+        result
+    if ma_type == 'HMA - Hull Moving Average'
+        result := ta.hma(ma_source, ma_length)
+        result
+    if ma_type == 'WMA - Weighted Moving Average'
+        result := ta.wma(ma_source, ma_length)
+        result
+    if ma_type == 'VWMA - Volume-Weighted Moving Average'
+        result := ta.vwma(ma_source, ma_length)
+        result
+    if ma_type == 'DEMA - Double Exponential Moving Average'
+        result := 2 * ta.ema(ma_source, ma_length) - ta.ema(ta.ema(ma_source, ma_length), ma_length)
+        result
+    if ma_type == 'TEMA - Triple Exponential Moving Average'
+        result := 3 * (ta.ema(ma_source, ma_length) - ta.ema(ta.ema(ma_source, ma_length), ma_length)) + ta.ema(ta.ema(ta.ema(ma_source, ma_length), ma_length), ma_length)
+        result
+    if ma_type == 'ZLEMA - Zero-Lag Exponential Moving Average'
+        result := ta.ema(ma_source + ma_source - ma_source[(ma_length - 1) / 2], ma_length)
+        result
+    if ma_type == 'TMA - Triangular Moving Average'
+        result := ta.sma(ta.sma(ma_source, math.ceil(ma_length / 2)), math.floor(ma_length / 2) + 1)
+        result
+    if ma_type == 'XEMA - Exponential Moving Average Optimized'
+        mult = 2.0 / (ma_length + 1.0)
+        result := mult * ma_source + (1.0 - mult) * nz(result[1], ma_source)
+        result
+    if ma_type == 'KAMA - Kaufmans Adaptive Moving Average'
+        dist = math.abs(ma_source[0] - ma_source[1])
+        signal = math.abs(ma_source - ma_source[ma_length])
+        noise = math.sum(dist, ma_length)
+        effr = noise != 0 ? signal / noise : 1
+        sc = math.pow(effr * (0.666 - 0.0645) + 0.0645, 2)
+        kama = ma_source
+        result := nz(result[1]) + sc * (ma_source - nz(result[1]))
+        result
+    if ma_type == 'FRAMA - Fractal Reactive Moving Average'
+        result := ta.ema(ma_source, ma_length)
+        n3_l = (ta.highest(high, ma_length) - ta.lowest(low, ma_length)) / ma_length
+        hd2_l = ta.highest(high, ma_length / 2)
+        ld2_l = ta.lowest(low, ma_length / 2)
+        n2_l = (hd2_l - ld2_l) / (ma_length / 2)
+        n1_l = (hd2_l[ma_length / 2] - ld2_l[ma_length / 2]) / (ma_length / 2)
+        dim_l = n1_l > 0 and n2_l > 0 and n3_l > 0 ? (math.log(n1_l + n2_l) - math.log(n3_l)) / math.log(2) : 0
+        alpha_l = math.exp(-4.6 * (dim_l - 1))
+        sc_l = alpha_l < 0.01 ? 0.01 : alpha_l > 1 ? 1 : alpha_l
+        frama_l = ma_source
+        result := ta.cum(1) <= 2 * ma_length ? ma_source : ma_source * sc_l + nz(frama_l[1]) * (1 - sc_l)
+        result
+    if ma_type == 'DONCHIAN - Donchian'
+        result := math.avg(ta.lowest(ma_length), ta.highest(ma_length))
+        result
+    if ma_type == 'DONCHIAN2 - Donchian V2'
+        kijun = math.avg(ta.lowest(ma_length), ta.highest(ma_length)) //, (open + close)/2)
+        conversionLine = math.avg(ta.lowest(ma_length / 2), ta.highest(ma_length / 2))
+        result := (kijun + conversionLine) / 2
+        result
+    if ma_type == 'FIBMA - Fibonacci Moving Average'
+        fibLength = math.round(ma_length * 0.618)
+        result := ta.sma(ma_source, fibLength)
+        result
+    if ma_type == 'GMMA - Guppy Multiple Moving Average'
+        shortMa = ta.sma(ma_source, math.round(ma_length * 0.5))
+        longMa = ta.sma(ma_source, ma_length)
+        result := (shortMa + longMa) / 2
+        result
+    ma_tf_security(result)
+width_min = input.float(0, 'Min width', group = group_ma, display = display.none)
+width_max = input.float(99999, 'Max width', group = group_ma, display = display.none)
+width_min_half = width_min / 2
+width_max_half = width_max / 2
+display_group = 'Display ##################################################'
+price_color = input.color(color.black, 'Candles color', display = display.none, group = display_group)
+plotcandle(open, high, low, close, color = price_color, bordercolor = price_color, wickcolor = price_color, display = display.pane)
+ma = ma()
+grid_high = ma * (1 + deviations)
+grid_low = ma * (1 - deviations)
+grid_middle = (grid_high + grid_low) / 2
+if grid_high - grid_low < width_min
+    grid_high := grid_middle + width_min_half
+    grid_low := grid_middle - width_min_half
+    grid_low
+if grid_high - grid_low > width_max
+    grid_high := grid_middle - width_max_half
+    grid_low := grid_middle + width_max_half
+    grid_low
+plot(grid_high, 'High', color.green, display = display.all)
+plot(grid_middle, 'Middle', color.silver, display = display.pane)
+plot(grid_low, 'Low', color.red, display = display.all)

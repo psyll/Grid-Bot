@@ -3,37 +3,7 @@
 // Email: info@psyll.com
 // Website: https://psyll.com
 // Copyright: Copyright © 2025 psyll.com. All rights reserved.
-indicator('Grid Bot [Grid range plugin] Z-Score [psyll]', overlay = false)
-ma(ma_type, ma_source, ma_length) =>
-    float result = 0
-    if ma_type == 'EMA'
-        result := ta.ema(ma_source, ma_length)
-        result
-    if ma_type == 'SMA'
-        result := ta.sma(ma_source, ma_length)
-        result
-    if ma_type == 'WMA'
-        result := ta.wma(ma_source, ma_length)
-        result
-    if ma_type == 'HMA'
-        result := ta.hma(ma_source, ma_length)
-        result
-    if ma_type == 'RMA'
-        result := ta.rma(ma_source, ma_length)
-        result
-    if ma_type == 'VWMA'
-        result := ta.vwma(ma_source, ma_length)
-        result
-    if ma_type == 'DEMA'
-        result := 2 * ta.ema(ma_source, ma_length) - ta.ema(ta.ema(ma_source, ma_length), ma_length)
-        result
-    if ma_type == 'TEMA'
-        result := 3 * (ta.ema(ma_source, ma_length) - ta.ema(ta.ema(ma_source, ma_length), ma_length)) + ta.ema(ta.ema(ta.ema(ma_source, ma_length), ma_length), ma_length)
-        result
-    if ma_type == 'ZLEMA'
-        result := ta.ema(ma_source + ma_source - ma_source[(ma_length - 1) / 2], ma_length)
-        result
-    result
+indicator('Grid Bot [Grid range plugin] HighLow [psyll]', overlay = false)
 decimal_places = 0
 tick_size = syminfo.mintick
 while tick_size < 1
@@ -41,11 +11,10 @@ while tick_size < 1
     decimal_places := decimal_places + 1
     decimal_places
 settings_group = 'Settings #################################################'
-ma_type = input.string('SMA', 'Type', options = ['SMA', 'EMA', 'WMA', 'HMA', 'RMA', 'VWMA', 'DEMA', 'TEMA', 'ZLEMA'], group = settings_group, display = display.none)
-length = input.int(500, 'Length', minval = 1, group = settings_group, display = display.none)
-source = input.source(defval = close, title = 'Source', group = settings_group, display = display.none)
-stddevs = input.float(1.69, 'Stddevs', group = settings_group, display = display.none)
+length = input.int(defval = 500, title = 'Length', group = settings_group, display = display.none)
+wick = input.bool(true, title = 'Include wick', group = settings_group, display = display.none)
 offset = input.float(1, 'Offset', group = settings_group, display = display.none)
+smooth = input.int(1, 'Smoothness', minval = 1, group = settings_group, display = display.none)
 width_min = input.float(0, 'Min width', group = settings_group, display = display.none)
 width_max = input.float(99999, 'Max width', group = settings_group, display = display.none)
 width_min_half = width_min / 2
@@ -65,17 +34,9 @@ tf_security(source) =>
     request.security(syminfo.tickerid, tf_type_value, tf_no_repaint_security ? source[barstate.isrealtime ? 1 : 0] : source, gaps = tf_barmerge_gaps ? barmerge.gaps_on : barmerge.gaps_off, lookahead = tf_barmerge_lookahead ? barmerge.lookahead_on : barmerge.lookahead_off)[tf_no_repaint_security ? barstate.isrealtime ? 0 : 1 : 0]
 display_group = 'Display ##################################################'
 price_color = input.color(color.black, 'Candles color', display = display.none, group = display_group)
-// Plot pricecandle
 plotcandle(open, high, low, close, color = price_color, bordercolor = price_color, wickcolor = price_color, display = display.pane)
-basis = tf_security(ma(ma_type, source, length))
-zscore = (source - basis) / tf_security(ta.stdev(source, length))
-diff = math.abs(source - basis)
-absZscore = math.abs(zscore)
-bounds = diff / absZscore * stddevs
-grid_high = basis + bounds
-grid_low = basis - bounds
-grid_high := grid_high + offset
-grid_low := grid_low - offset
+grid_high = tf_security(ta.sma(ta.highest(wick ? high : close, length), smooth) + offset)
+grid_low = tf_security(ta.sma(ta.lowest(wick ? low : close, length), smooth) - offset)
 grid_middle = (grid_high + grid_low) / 2
 if grid_high - grid_low < width_min
     grid_high := grid_middle + width_min_half

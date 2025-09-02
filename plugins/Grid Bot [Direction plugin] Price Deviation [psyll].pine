@@ -1,0 +1,29 @@
+//@version=6
+// Author: Psyll.com
+// Email: info@psyll.com
+// Website: https://psyll.com
+// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+
+indicator('Grid Bot [Direction plugin] Price Deviation [psyll]', overlay = false)
+// Define the number of bars to calculate the average value
+settings_group = '##### Settings'
+length = input(100, title = 'Length', group = settings_group, display = display.none)
+smoothness = input(20, title = 'Smoothness', group = settings_group, display = display.none)
+tf_group = '##### Timeframe'
+tf_confirmation_wait = input.bool(defval = true, title = 'Wait for confirm', group = tf_group, inline = tf_group, display = display.none)
+tf_no_repaint_security = input.bool(defval = true, title = 'No repaint', group = tf_group, inline = tf_group, display = display.none)
+tf_barmerge_lookahead = input.bool(defval = false, title = 'Lookahead', group = tf_group, inline = tf_group, display = display.none)
+tf_barmerge_gaps = input.bool(defval = false, title = 'Gaps', group = tf_group, inline = tf_group, display = display.none)
+tf_type = input.string(title = 'Type', options = ['Static', 'Custom'], defval = 'Static', group = tf_group, display = display.none)
+tf_static = input.timeframe(defval = '', title = 'Static', group = tf_group, display = display.none)
+tf_custom = str.tostring(input.int(1, 'Custom', group = tf_group, display = display.none))
+tf_type_value = switch tf_type
+    'Static' => tf_static
+    'Custom' => tf_custom
+tf_security(source) =>
+    request.security(syminfo.tickerid, tf_type_value, tf_no_repaint_security ? source[barstate.isrealtime ? 1 : 0] : source, gaps = tf_barmerge_gaps ? barmerge.gaps_on : barmerge.gaps_off, lookahead = tf_barmerge_lookahead ? barmerge.lookahead_on : barmerge.lookahead_off)[tf_no_repaint_security ? barstate.isrealtime ? 0 : 1 : 0]
+avg_price = tf_security(ta.sma(close, length))
+price_diff_calc = (close - avg_price) / avg_price * 100
+price_diff = tf_security(ta.sma(price_diff_calc, smoothness))
+histogram_color = price_diff > 0 ? color.green : price_diff < 0 ? color.red : na
+plot(title = 'Direction', series = price_diff, color = histogram_color, style = plot.style_area, display = display.pane)

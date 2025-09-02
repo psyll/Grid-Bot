@@ -1,0 +1,52 @@
+//@version=5
+// Author: Psyll.com
+// Email: info@psyll.com
+// Website: https://psyll.com
+// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+indicator('Grid Bot [Direction plugin] Supertrend Pivot [psyll]', overlay=false)
+prd = input.int(defval=20, title='Pivot Point Period', minval=1, maxval=999, display = display.none)
+Factor = input.float(defval=3, title='ATR Factor', minval=1, step=0.1, display = display.none)
+Pd = input.int(defval=14, title='ATR Period', minval=1, display = display.none)
+tf_group = 'Timeframe ###############################################'
+tf_confirmation_wait            = input.bool(defval=true, title='Wait for confirm', group=tf_group, inline=tf_group, display = display.none)
+tf_no_repaint_security          = input.bool(defval=true, title='No repaint', group=tf_group, inline=tf_group, display = display.none)
+tf_barmerge_lookahead           = input.bool(defval=false, title='Lookahead', group=tf_group, inline=tf_group, display = display.none)
+tf_barmerge_gaps                = input.bool(defval=false, title='Gaps', group=tf_group, inline=tf_group, display = display.none)
+tf_type                         = input.string(title='Type', options=["Static", "Custom"], defval="Static",  group=tf_group, display = display.none)
+tf_static                       = input.timeframe(defval ='' , title = "Static",  group=tf_group, display = display.none)
+tf_custom                       = str.tostring(input.int(1, "Custom",  group=tf_group, display = display.none))
+tf_type_value = switch tf_type
+    "Static" => tf_static
+    "Custom"    => tf_custom
+tf_security(source) =>
+    request.security(syminfo.tickerid, tf_type_value, tf_no_repaint_security ? source[barstate.isrealtime ? 1 : 0] : source, gaps = tf_barmerge_gaps ? barmerge.gaps_on : barmerge.gaps_off, lookahead=tf_barmerge_lookahead ? barmerge.lookahead_on : barmerge.lookahead_off)[tf_no_repaint_security ? barstate.isrealtime ? 0 : 1 : 0]
+float ph = tf_security(ta.pivothigh(prd, prd))
+float pl = tf_security(ta.pivotlow(prd, prd))
+var float center = na
+float lastpp = ph ? ph : pl ? pl : na
+if lastpp
+    if na(center)
+        center := lastpp
+        center
+    else
+        center := (center * 2 + lastpp) / 3
+        center
+
+Up = center - Factor * tf_security(ta.atr(Pd))
+Dn = center + Factor * tf_security(ta.atr(Pd))
+float TUp = na
+float TDown = na
+Trend = 0
+TUp := close[1] > TUp[1] ? math.max(Up, TUp[1]) : Up
+TDown := close[1] < TDown[1] ? math.min(Dn, TDown[1]) : Dn
+Trend := close > TDown[1] ? 1 : close < TUp[1] ? -1 : nz(Trend[1], 1)
+Trailingsl = Trend == 1 ? TUp : TDown
+linecolor = Trend == 1 and nz(Trend[1]) == 1 ? color.lime : Trend == -1 and nz(Trend[1]) == -1 ? color.red : na
+plot(Trailingsl, color=linecolor, linewidth=2, title='Plot', display = display.pane)
+bsignal = Trend == 1 and Trend[1] == -1
+ssignal = Trend == -1 and Trend[1] == 1
+float resistance = na
+float support = na
+support := pl ? pl : support[1]
+resistance := ph ? ph : resistance[1]
+plot(Trend == 1 and nz(Trend[1]) == 1 ? 1 : Trend == -1 and nz(Trend[1]) == -1 ? -1 : na, "Direction", display = display.status_line)

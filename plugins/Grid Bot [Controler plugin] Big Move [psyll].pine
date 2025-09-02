@@ -1,0 +1,69 @@
+//@version=6
+// Author: Psyll.com
+// Email: info@psyll.com
+// Website: https://psyll.com
+// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+indicator('Grid Bot [Controler plugin] Big Move [psyll]', overlay = false)
+mode = input.string('Close + Wait', 'Mode', ['Close + Wait', 'Close', 'Wait'])
+source = input.source(close, 'Source', display = display.none)
+
+length = input.int(title = 'Lookback period ', defval = 420, minval = 1, maxval = 4999, display = display.none)
+multipler = input.float(100, 'Multipler', minval = 2, display = display.none)
+threshold = input.float(title = 'Threshold', defval = 1, minval = 0.01, step = 0.01, display = display.none)
+after = input.int(30, 'Mark candles after big move', display = display.none)
+vrocNormalized = close
+isBigMove = false
+isBigMoveShort = false
+isBigMoveLong = false
+vStatus = false
+entryStatus = true
+mav = ta.sma(volume, length)
+difference = mav - mav[1]
+volumeIncreasing = difference > 0
+valueIncreasing = close > close[1]
+increasing = valueIncreasing and volumeIncreasing
+vroc = increasing ? difference * (100 / mav[1]) : 0
+historicMax = 0.0
+firstVrocNormalizedValue = 10
+historicMax := vroc > historicMax[1] ? vroc : nz(historicMax[1], firstVrocNormalizedValue)
+vrocNormalized := vroc / historicMax * multipler
+after_move = false
+vStatus := vrocNormalized >= threshold
+if vStatus
+    isBigMove := true
+    isBigMove
+if ta.barssince(isBigMove == true) < after
+    after_move := true
+    after_move
+big_move_plot = plot(vrocNormalized, title = 'Signal', color = threshold < vrocNormalized ? color.new(color.red, 0) : color.new(color.black, 0), style = plot.style_area)
+plot(threshold, title = 'Exit line', color = after_move ? color.new(color.red, 90) : color.new(color.white, 90), linewidth = 1, style = plot.style_area)
+// // 0 = default
+// // 1 = exit
+// // 2 = no entry
+// // 3 = no exit
+// // 4 = entry
+longs = 0
+shorts = 0
+if mode == 'Close + Wait'
+    if after_move
+        shorts := 2
+        longs := 2
+        longs
+    if isBigMove
+        shorts := 1
+        longs := 1
+        longs
+if mode == 'Close'
+    if isBigMove
+        shorts := 1
+        longs := 1
+        longs
+if mode == 'Wait'
+    if after_move
+        shorts := 2
+        shorts
+    if after_move
+        longs := 2
+        longs
+plot(longs, 'Long', display = display.none)
+plot(shorts, 'Short', display = display.none)

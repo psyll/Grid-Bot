@@ -1,0 +1,92 @@
+//@version=6
+// Author: Psyll.com
+// Email: info@psyll.com
+// Website: https://psyll.com
+// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+indicator('Grid Bot [Grid range plugin] Murrey Lines [psyll]', overlay = false)
+decimal_places = 0
+tick_size = syminfo.mintick
+while tick_size < 1
+    tick_size := tick_size * 10
+    decimal_places := decimal_places + 1
+    decimal_places
+settings_group = 'Settings #################################################'
+frame = input.int(defval = 64, title = 'Frame Size', minval = 8, maxval = 256, group = settings_group, display = display.none)
+mult = input.float(defval = 1.5, title = 'Frame Multiplier', minval = 1.0, maxval = 2.0, step = 0.5, group = settings_group, display = display.none)
+wicks = input(defval = true, title = 'Ignore Wicks?')
+level_top = input.int(defval = 0, title = 'Top level', minval = -14, maxval = 14, group = settings_group, display = display.none)
+level_bottom = input.int(defval = 10, title = 'Bottom level', minval = -14, maxval = 14, group = settings_group, display = display.none)
+offset = input.float(1, 'Offset', group = settings_group, display = display.none)
+width_min = input.float(0, 'Min width', group = settings_group, display = display.none)
+width_max = input.float(99999, 'Max width', group = settings_group, display = display.none)
+smooth = input.int(defval = 2, title = 'Smooth', minval = 2, maxval = 9999, group = settings_group, display = display.none)
+nround(x) =>
+    n = math.round(x / syminfo.mintick) * syminfo.mintick
+    n
+width_min_half = width_min / 2
+width_max_half = width_max / 2
+tf_group = 'Timeframe ###############################################'
+tf_confirmation_wait = input.bool(defval = true, title = 'Wait for confirm', group = tf_group, inline = tf_group, display = display.none)
+tf_no_repaint_security = input.bool(defval = true, title = 'No repaint', group = tf_group, inline = tf_group, display = display.none)
+tf_barmerge_lookahead = input.bool(defval = false, title = 'Lookahead', group = tf_group, inline = tf_group, display = display.none)
+tf_barmerge_gaps = input.bool(defval = false, title = 'Gaps', group = tf_group, inline = tf_group, display = display.none)
+tf_type = input.string(title = 'Type', options = ['Static', 'Custom'], defval = 'Static', group = tf_group, display = display.none)
+tf_static = input.timeframe(defval = '', title = 'Static', group = tf_group, display = display.none)
+tf_custom = str.tostring(input.int(1, 'Custom', group = tf_group, display = display.none))
+tf_type_value = switch tf_type
+    'Static' => tf_static
+    'Custom' => tf_custom
+tf_security(source) =>
+    request.security(syminfo.tickerid, tf_type_value, tf_no_repaint_security ? source[barstate.isrealtime ? 1 : 0] : source, gaps = tf_barmerge_gaps ? barmerge.gaps_on : barmerge.gaps_off, lookahead = tf_barmerge_lookahead ? barmerge.lookahead_on : barmerge.lookahead_off)[tf_no_repaint_security ? barstate.isrealtime ? 0 : 1 : 0]
+display_group = 'Display ##################################################'
+price_color = input.color(color.black, 'Candles color', display = display.none, group = display_group)
+plotcandle(open, high, low, close, color = price_color, bordercolor = price_color, wickcolor = price_color, display = display.pane)
+logTen = math.log(10)
+log8 = math.log(8)
+log2 = math.log(2)
+lookback = math.round(frame * mult)
+uPrice = wicks == true ? math.max(open, close) : high
+lPrice = wicks == true ? math.min(open, close) : low
+vLow = tf_security(ta.lowest(lPrice, lookback))
+vHigh = tf_security(ta.highest(uPrice, lookback))
+vDist = vHigh - vLow
+tmpHigh = vLow < 0 ? 0 - vLow : vHigh
+tmpLow = vLow < 0 ? 0 - vLow - vDist : vLow
+shift = vLow < 0 ? true : false
+sfVar = math.log(0.4 * tmpHigh) / logTen - math.floor(math.log(0.4 * tmpHigh) / logTen)
+SR = tmpHigh > 25 ? sfVar > 0 ? math.exp(logTen * (math.floor(math.log(0.4 * tmpHigh) / logTen) + 1)) : math.exp(logTen * math.floor(math.log(0.4 * tmpHigh) / logTen)) : 100 * math.exp(log8 * math.floor(math.log(0.005 * tmpHigh) / log8))
+nVar1 = math.log(SR / (tmpHigh - tmpLow)) / log8
+nVar2 = nVar1 - math.floor(nVar1)
+N = nVar1 <= 0 ? 0 : nVar2 == 0 ? math.floor(nVar1) : math.floor(nVar1) + 1
+SI = SR * math.exp(-N * log8)
+M = math.floor(1.0 / log2 * math.log((tmpHigh - tmpLow) / SI) + 0.0000001)
+I = math.round((tmpHigh + tmpLow) * 0.5 / (SI * math.exp((M - 1) * log2)))
+Bot = (I - 1) * SI * math.exp((M - 1) * log2)
+Top = (I + 1) * SI * math.exp((M - 1) * log2)
+doShift = tmpHigh - Top > 0.25 * (Top - Bot) or Bot - tmpLow > 0.25 * (Top - Bot)
+ER = doShift == true ? 1 : 0
+MM = ER == 0 ? M : ER == 1 and M < 2 ? M + 1 : 0
+NN = ER == 0 ? N : ER == 1 and M < 2 ? N : N - 1
+finalSI = ER == 1 ? SR * math.exp(-NN * log8) : SI
+finalI = ER == 1 ? math.round((tmpHigh + tmpLow) * 0.5 / (finalSI * math.exp((MM - 1) * log2))) : I
+finalBot = ER == 1 ? (finalI - 1) * finalSI * math.exp((MM - 1) * log2) : Bot
+finalTop = ER == 1 ? (finalI + 1) * finalSI * math.exp((MM - 1) * log2) : Top
+Increment = (finalTop - finalBot) / 8
+absTop = shift == true ? -(finalBot - 3 * Increment) : finalTop + 3 * Increment
+grid_high = absTop - -level_top * Increment + offset
+grid_low = absTop - level_bottom * Increment - offset
+grid_middle = (grid_high + grid_low) / 2
+if grid_high - grid_low < width_min
+    grid_high := grid_middle + width_min_half
+    grid_low := grid_middle - width_min_half
+    grid_low
+if grid_high - grid_low > width_max
+    grid_high := grid_middle - width_max_half
+    grid_low := grid_middle + width_max_half
+    grid_low
+grid_high := ta.sma(grid_high, smooth)
+grid_low := ta.sma(grid_low, smooth)
+grid_middle := ta.sma(grid_middle, smooth)
+plot(grid_high, 'High', color.green, display = display.all)
+plot(grid_middle, 'Middle', color.silver, display = display.pane)
+plot(grid_low, 'Low', color.red, display = display.all)
