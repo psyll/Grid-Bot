@@ -1,8 +1,13 @@
+
+
+
 # Grid Bot
 
-![alt text](images/header.jpg)
+:link: Visit [Psyll.com](https://psyll.com/en) for best Trading Bots
 
-## Over[view](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>)
+![Grid Bot header](images/header.jpg)
+
+## Overview
 
 Grid Bot is an advanced Pine Script strategy developed for TradingView, designed to elevate automated grid trading to a new standard of precision and adaptability. This script incorporates a sophisticated parameter system and a modular plugin architecture, empowering traders to dynamically configure grid ranges and exercise comprehensive control over order placement and execution. In contrast to traditional grid strategies, which often falter in volatile or unpredictable market environments, Grid Bot emphasizes resilience and extensibility. It provides a robust framework that maintains stability across diverse market conditions while facilitating seamless integration of custom enhancements.
 
@@ -23,7 +28,7 @@ To initiate Grid Bot on a TradingView chart, begin by adding the script to your 
 
 Following the start time selection, the script will request the definition of the grid's vertical boundaries. You will see prompts for `select grid high range` and `select grid low range.` Respond by clicking on the chart to mark the upper and lower price levels that delineate the grid's operational zone. These selections are critical, as they establish the range within which the bot will place and manage orders. To facilitate informed decision-making, consider incorporating technical indicators such as support and resistance levels, moving averages, or Fibonacci retracements when choosing these points.
 
-Once the grid boundaries are set, Grid Bot will present a confirmation dialog summarizing the provided parameters, including the start time and grid ranges. Re[view](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>) this information carefully for accuracy, as it forms the basis of the strategy's execution. Accepting the parameters activates the bot, initiating monitoring of price movements within the defined grid. This user-friendly onboarding process minimizes setup complexity while ensuring transparency and control from the outset.
+Once the grid boundaries are set, Grid Bot will present a confirmation dialog summarizing the provided parameters, including the start time and grid ranges. Review this information carefully for accuracy, as it forms the basis of the strategy's execution. Accepting the parameters activates the bot, initiating monitoring of price movements within the defined grid. This user-friendly onboarding process minimizes setup complexity while ensuring transparency and control from the outset.
 
 ![Initial setup](images/initial.gif)
 
@@ -44,7 +49,7 @@ Grid Bot offers a comprehensive suite of configurable settings, categorized for 
 
 These options govern the visual representation of the strategy on the chart, enhancing interpretability without cluttering the interface.
 
-- **Positions Table:** Enables the display of a detailed table summarizing active positions, including entry prices, quantities, profit/loss metrics, and status updates. This feature is invaluable for real-time monitoring, providing a consolidated [view](<plugins/Grid Bot [Grid range plugin] Z-Score [psyll].pine>) that aids in quick decision-making during live sessions.
+- **Positions Table:** Enables the display of a detailed table summarizing active positions, including entry prices, quantities, profit/loss metrics, and status updates. This feature is invaluable for real-time monitoring, providing a consolidated view that aids in quick decision-making during live sessions.
 - **Grid Lines:** Toggles the visibility of horizontal lines representing the grid levels. When activated, these lines clearly demarcate the trading zones, assisting in visual confirmation of price interactions with grid boundaries.
 - **Color Candles:** Applies color coding to candlesticks based on the direction of open positions (e.g., green for longs, red for shorts). This intuitive visualization helps traders gauge market sentiment and position bias at a glance, complementing other technical tools.
 
