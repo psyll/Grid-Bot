@@ -1,6 +1,3 @@
-
-
-
 # Grid Bot
 
 :link: Visit [Psyll.com](https://psyll.com/en) for best Trading Bots
@@ -22,7 +19,6 @@ Grid Bot's core philosophy revolves around user empowerment through flexibility.
 ![Grid Bot screen 5](images/5.jpg)
 
 ## Getting Started - Initial setup
-
 
 To initiate Grid Bot on a TradingView chart, begin by adding the script to your selected asset's chart. Upon activation, the script will prompt you with an instructional message: `Set the "start" time for "Grid Bot [psyll]".` At this stage, interact with the chart by clicking to designate the precise timestamp at which the strategy should commence operations. This interactive setup ensures that the bot aligns with your intended trading session, accounting for historical data and real-time market entry points.
 
