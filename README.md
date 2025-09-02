@@ -10,13 +10,14 @@ By releasing Grid Bot as freeware, the developer, Psyll, aims to deliver a profe
 
 Grid Bot's core philosophy revolves around user empowerment through flexibility. Traders can manually define grid parameters based on technical analysis or leverage automated plugins for dynamic adjustments. This dual approach ensures accessibility for a broad spectrum of users while accommodating advanced customization needs. Whether applied to cryptocurrencies, forex, or equities, Grid Bot promotes disciplined trading by incorporating risk management features such as maximum drawdown limits and automatic shutdown mechanisms when market conditions deviate from expected ranges.
 
-![alt text](images/1.jpg)
-![alt text](images/2.jpg)
-![alt text](images/3.jpg)
-![alt text](images/4.jpg)
-![alt text](images/25.jpg)
+![Grid Bot screen 1](images/1.jpg)
+![Grid Bot screen 2](images/2.jpg)
+![Grid Bot screen 3](images/3.jpg)
+![Grid Bot screen 4](images/4.jpg)
+![Grid Bot screen 5](images/5.jpg)
 
 ## Getting Started - Initial setup
+
 
 To initiate Grid Bot on a TradingView chart, begin by adding the script to your selected asset's chart. Upon activation, the script will prompt you with an instructional message: `Set the "start" time for "Grid Bot [psyll]".` At this stage, interact with the chart by clicking to designate the precise timestamp at which the strategy should commence operations. This interactive setup ensures that the bot aligns with your intended trading session, accounting for historical data and real-time market entry points.
 
@@ -24,7 +25,7 @@ Following the start time selection, the script will request the definition of th
 
 Once the grid boundaries are set, Grid Bot will present a confirmation dialog summarizing the provided parameters, including the start time and grid ranges. Review this information carefully for accuracy, as it forms the basis of the strategy's execution. Accepting the parameters activates the bot, initiating monitoring of price movements within the defined grid. This user-friendly onboarding process minimizes setup complexity while ensuring transparency and control from the outset.
 
-For optimal performance, it is recommended to test the strategy in TradingView's backtesting mode before deploying it in live trading. This allows you to simulate various market scenarios and refine parameters without financial risk. Additionally, ensure that your TradingView account has sufficient permissions for script execution, and familiarize yourself with the platform's alert system to integrate Grid Bot with external notifications if desired.
+![Initial setup](images/initial.gif)
 
 ## Target Audience
 
@@ -36,7 +37,6 @@ In essence, Grid Bot caters to those committed to algorithmic trading as a disci
 Features and Settings
 
 Grid Bot offers a comprehensive suite of configurable settings, categorized for ease of navigation. These parameters allow fine-tuned control over display elements, runtime behavior, grid structure, entry and exit conditions, and dynamic manipulations. Below is a detailed breakdown of each section, including explanations of their functionalities and practical considerations for implementation.
-
 
 ## Settings
 
@@ -119,6 +119,13 @@ Grid Bot's extensibility shines through its plugin system, which allows integrat
 ### Grid Range Plugins
 These plugins transition grid boundaries from static to dynamic management. Users can assign independent plugins for Top/Bottom and Middle separately, drawing from indicators like moving averages or volatility metrics to auto-adjust ranges in response to market shifts.
 
+| Plugin name    | Code | Screenshot |
+| -------- | ------- | ------- |
+| Z-Score  |  View   | ![alt text](images/plugin_z-score.jpg) |
+| February | $80     | ------- |
+| March    | $420    | ------- |
+
+
 ### Direction Plugins
 Enable runtime switching of trading directions based on external signals, such as trend indicators or sentiment analysis, promoting adaptive strategies that respond to real-time data.
 
@@ -130,7 +137,8 @@ Facilitate granular order management, including opening, closing, or blocking tr
 
 ## Live Trading via Psyll.com Webhooks
 
-:link: [Visit Psyll.com Webhook page](https://psyll.com/en/webhook)
+:link: Visit [ Psyll.com Webhook](https://psyll.com/en/webhook) page at https://psyll.com/en/webhoo
+
 
 Grid Bot can be extended beyond simulation and backtesting by integrating it with live trading environments through TradingView's alert system and Psyll.com's webhook functionality. This integration enables the execution of real orders on supported exchanges without incurring additional costs for basic usage, leveraging a free tier that facilitates automated trading strategies in production settings.
 
