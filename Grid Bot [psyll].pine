@@ -1,0 +1,427 @@
+//@version=5
+// Author: Psyll.com
+// Email: info@psyll.com
+// Website: https://psyll.com
+// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+strategy(
+     title = 'Grid Bot [psyll]',
+     overlay = true,
+     commission_type = strategy.commission.percent,
+     commission_value = 0,
+     pyramiding = 10,
+     default_qty_type = strategy.fixed,
+     default_qty_value = 1,
+     close_entries_rule = 'ANY',
+     initial_capital = 1000,
+     currency=currency.USD,
+     use_bar_magnifier = true,
+     calc_on_every_tick = false
+     )
+var int[] opened_short = array.new_int()
+var int[] opened_long = array.new_int()
+first_trade = 0
+decimal_places = 0
+tick_size = syminfo.mintick
+while tick_size < 1
+    tick_size *= 10
+    decimal_places += 1
+enabled = true
+canEntry = true
+canEntryShort = true
+canEntryLong = true
+canExit = true
+canExitShort = true
+canExitLong = true
+// ############################################################################
+// DISPLAY
+// ############################################################################
+group_display                   = "### Display"
+display_table_positions         = input.bool(true, title='Positions table', group=group_display, display = display.none, inline=group_display + 'table')
+display_grid_lines              = input.bool(true, title='Grid lines', group=group_display, display = display.none, inline=group_display + 'lines')
+display_candles                 = input.bool(true, title='Color candles', group=group_display, display = display.none, inline=group_display)
+// ############################################################################
+// RUNTME
+// ############################################################################
+group_runtime_period            = "### Runtime"
+runtime_start                   = input.time(defval=timestamp('1 sep 2023 13:30 +0000'), title='Start', group = group_runtime_period , display = display.none, confirm = true)
+runtime_end                     = input.time(defval=timestamp('31 jan 2030 13:30 +0000'), title='End', group = group_runtime_period , display = display.none)
+runtime  = time > runtime_start  and time < runtime_end
+barssince_runtime = ta.barssince(runtime == false)
+barssince_last_trade = ta.barssince(strategy.opentrades != strategy.opentrades[1])
+barssince_last_position_swap = ta.barssince(strategy.position_size[0] > 0 and strategy.position_size[1] <= 0 or strategy.position_size[0] < 0 and strategy.position_size[1] >= 0)
+// Bot mode
+group_grids                      = "##### Grids"
+grids_count                     = input.int(title='Grids', group = group_grids, defval=20, maxval = 50, minval = 2, step= 2, confirm=true, display = display.none)
+grid_half = grids_count / 2
+group_entry                      = "##### Entry"
+entry_direction                  = input.string('Both', 'Direction', options=['Both', 'Longs', 'Shorts'],  group = group_entry, display = display.none)
+entry_mode                       = input.string('Default', 'Mode', options=['Default', 'Burst'],  group = group_entry, display = display.none)
+entry_first                       = input.string('Default', 'First entry', options=['Default', 'Instant'],  group = group_entry, display = display.none)
+entry_source_long                    = input.source(close, title='Long source', group = group_entry, display = display.none)
+entry_source_short                    = input.source(close, title='Short source', group = group_entry, display = display.none)
+group_exit                      = "##### Exit"
+exit_mode                           = input.string('Default', 'Mode', options=['Default', 'Open trades', 'Trailing'],  group = group_exit, display = display.none)
+exit_source_long                    = input.source(close, title='Long source', group = group_exit, display = display.none)
+exit_source_short                   = input.source(close, title='Short source', group = group_exit, display = display.none)
+exit_trailing_points = input.float(100, 'Trailing Points', minval=0.01, step=0.01, group=group_exit, display = display.none)
+exit_trailing_offset = input.float(100, 'Trailing Offset', minval=0.01, step=0.01, group=group_exit, display = display.none)
+exit_grid_leave_stoploss    = input.bool(defval = false , title = "Stoploss when the price leaves the grid", group = group_exit, display = display.none)
+exit_grid_leave_disable     = input.bool(defval = false , title = "Disable order entries after price leaves the grid", group = group_exit, display = display.none)
+risk_drawdown_mode                           = input.string('None', 'Max drawdown', options=['None', 'Percent', 'Static'],  group = group_exit, display = display.none, inline = group_exit + "1")
+risk_drawdown_value                           = input.float(10, 'Value', group = group_exit, display = display.none, inline = group_exit + "1")
+group_em                      = "##### Exit manipulation"
+em_positions = input.string('None', 'Positions', options=['None', 'Increase with positions', 'Decrease with positions'],  group = group_em, inline="em1", display = display.none)
+em_positions_multipler = input.float(0.5, 'Mutlipler', step=0.01, group =group_em, inline="em1", display = display.none)
+em_time = input.string('None', 'Time', options=['None', 'Increase with time', 'Decrease with time'],  group = group_em, inline="em2", display = display.none)
+em_time_multipler = input.float(0.002, 'Mutlipler', step=0.01, group =group_em, inline="em2", display = display.none)
+group_range                      = "##### Grid range"
+grid_high = input.price(defval = 34000.00,title = 'Grid top',group = group_range,tooltip = "Select grid high range", confirm = true, display = display.none)
+grid_low = input.price(defval = 21000.00,title = 'Grid bottom',group = group_range,tooltip = "Select grid low range",confirm = true, display = display.none)
+grid_middle = (grid_high + grid_low ) / 2
+group_grm                      = "##### Grid range manipulation"
+grm_positions = input.string('None', 'Positions', options=['None', 'Increase with positions', 'Decrease with positions'],  group = group_grm, inline="gsm1", display = display.none)
+grm_positions_multipler = input.float(0.5, 'Mutlipler', step=0.01, group =group_grm, inline="gsm1", display = display.none)
+grm_time = input.string('None', 'Time', options=['None', 'Increase with time', 'Decrease with time'],  group = group_grm, inline="gsm2", display = display.none)
+grm_time_multipler = input.float(0.02, 'Mutlipler', step=0.01, group =group_grm, inline="gsm2", display = display.none)
+group_gmm                      = "##### Grid middle manipulation"
+gmm_positions = input.string('None', 'Positions', options=['None', 'Increase with positions', 'Decrease with positions'],  group = group_gmm, inline="gmm1", display = display.none)
+gmm_positions_multipler = input.float(0.5, 'Mutlipler', step=0.01, group =group_gmm, inline="gmm1", display = display.none)
+gmm_time = input.string('None', 'Time', options=['None', 'Increase with time', 'Decrease with time'],  group = group_gmm, inline="gmm2", display = display.none)
+gmm_time_multipler = input.float(0.002, 'Mutlipler', group =group_gmm, inline="gmm2", display = display.none)
+group_plugin_range                      = "##### Plugin: Grid range"
+plugin_range_active                       = input.bool(false, title='Active', group = group_plugin_range, display = display.none)
+plugin_range_high                       = input.source(close, title='High', group = group_plugin_range, display = display.none, inline="plugin_range")
+plugin_range_low                       = input.source(close, title='Low', group = group_plugin_range, display = display.none, inline="plugin_range")
+plugin_range_middle_active                       = input.bool(false, title='Active middle', group = group_plugin_range, display = display.none)
+plugin_range_middle                       = input.source(close, title='Middle', group = group_plugin_range, display = display.none)
+grid_middle := (grid_high + grid_low ) / 2
+if plugin_range_active
+    grid_high := plugin_range_high
+    grid_low := plugin_range_low
+    if plugin_range_middle_active
+        grid_middle := plugin_range_middle
+    else
+        grid_middle := (grid_high + grid_low ) / 2
+grid_space = (grid_high - grid_low) / (grids_count + 1)
+if (grm_positions == 'Increase with positions')
+    grid_high := grid_high + (strategy.opentrades * (grid_space * grm_positions_multipler))
+    grid_low := grid_low -  (strategy.opentrades * (grid_space * grm_positions_multipler))
+if (grm_positions == 'Decrease with positions')
+    grid_high := grid_high - (strategy.opentrades * (grid_space * grm_positions_multipler))
+    grid_low := grid_low +  (strategy.opentrades * (grid_space * grm_positions_multipler))
+if (grm_time == 'Increase with time') and barssince_last_position_swap != 0
+    grid_high := grid_high + (barssince_last_position_swap * (grid_space * grm_time_multipler))
+    grid_low := grid_low -  (barssince_last_position_swap * (grid_space * grm_time_multipler))
+if (grm_time == 'Decrease with time') and barssince_last_position_swap != 0
+    grid_high := grid_high - (barssince_last_position_swap * (grid_space * grm_time_multipler))
+    grid_low := grid_low +  (barssince_last_position_swap * (grid_space * grm_time_multipler))
+grid_space := (grid_high - grid_low) / (grids_count + 1)
+if (gmm_positions == 'Increase with positions')
+    if strategy.position_size > 0
+        grid_middle := grid_middle + (strategy.opentrades * (grid_space * gmm_positions_multipler))
+    if strategy.position_size < 0
+        grid_middle := grid_middle - (strategy.opentrades * (grid_space * gmm_positions_multipler))
+if (gmm_positions == 'Decrease with positions')
+    if strategy.position_size > 0
+        grid_middle := grid_middle - (strategy.opentrades * (grid_space * gmm_positions_multipler))
+    if strategy.position_size < 0
+        grid_middle := grid_middle + (strategy.opentrades * (grid_space * gmm_positions_multipler))
+if (gmm_time == 'Increase with time') and barssince_last_position_swap != 0
+    if strategy.position_size > 0
+        grid_middle := grid_middle + (barssince_last_position_swap * (grid_space * gmm_time_multipler))
+    if strategy.position_size < 0
+        grid_middle := grid_middle - (barssince_last_position_swap * (grid_space * gmm_time_multipler))
+if (gmm_time == 'Decrease with time') and barssince_last_position_swap != 0
+    if strategy.position_size > 0
+        grid_middle := grid_middle - (barssince_last_position_swap * (grid_space * gmm_time_multipler))
+    if strategy.position_size < 0
+        grid_middle := grid_middle + (barssince_last_position_swap * (grid_space * gmm_time_multipler))
+if runtime and exit_grid_leave_stoploss and (close > grid_high or close < grid_low)
+    strategy.close_all('Grid leave close all')
+    array.clear(opened_long)
+    array.clear(opened_short)
+if runtime and exit_grid_leave_disable and (close > grid_high or close < grid_low)
+    enabled := false
+if enabled[1] == false
+    enabled := false
+group_plugin_direction                   = "##### Plugin: Direction"
+plugin_direction_active                       = input.bool(false, title='Active', group = group_plugin_direction, display = display.none)
+plugin_direction                        = input.source(close, title='Direction', group = group_plugin_direction, display = display.none)
+plugin_direction_mode                   = input.string('Allow entries', 'Mode', options=['Allow entries','Change direction'],  group = group_plugin_direction,display = display.none)
+plugin_direction_reverse                =  input.bool(false, title='Reverse', group = group_plugin_direction, display = display.none)
+if plugin_direction_active
+    if plugin_direction_mode == 'Change direction'
+        if not plugin_direction_reverse
+            if plugin_direction > 0
+                entry_direction := 'Longs'
+            if plugin_direction < 0
+                entry_direction := 'Shorts'
+        if plugin_direction_reverse
+            if plugin_direction > 0
+                entry_direction := 'Shorts'
+            if plugin_direction < 0
+                entry_direction := 'Longs'
+    if plugin_direction_mode == 'Allow entries'
+        if not plugin_direction_reverse
+            if plugin_direction > 0
+                canEntryShort := false
+                canEntryLong := true
+            if plugin_direction < 0
+                canEntryShort := true
+                canEntryLong := false
+        if plugin_direction_reverse
+            if plugin_direction > 0
+                canEntryShort := true
+                canEntryLong := false
+            if plugin_direction < 0
+                canEntryShort := false
+                canEntryLong := true
+group_plugin_controller                      = "##### Plugin: Controller"
+plugin_controller_1_active                      = input.bool(false, title='', group = group_plugin_controller, inline = 'Controller1', display = display.none)
+plugin_controller_1_long                       = input.source(close, title='Long', group = group_plugin_controller, inline = 'Controller1', display = display.none)
+plugin_controller_1_short                       = input.source(close, title='Short', group = group_plugin_controller, inline = 'Controller1', display = display.none)
+plugin_controller_2_active                      = input.bool(false, title='', group = group_plugin_controller, inline = 'Controller2', display = display.none)
+plugin_controller_2_long                       = input.source(close, title='Long', group = group_plugin_controller, inline = 'Controller2', display = display.none)
+plugin_controller_2_short                       = input.source(close, title='Short', group = group_plugin_controller, inline = 'Controller2', display = display.none)
+plugin_controller_3_active                      = input.bool(false, title='', group = group_plugin_controller, inline = 'Controller3', display = display.none)
+plugin_controller_3_long                       = input.source(close, title='Long', group = group_plugin_controller, inline = 'Controller3', display = display.none)
+plugin_controller_3_short                       = input.source(close, title='Short', group = group_plugin_controller, inline = 'Controller3', display = display.none)
+// 0 = default, 1 = exit, 2 = no entry, 3 = no exit, 4 = entry
+if plugin_controller_1_active
+    if (plugin_controller_1_long == 1)
+        canEntryLong := false
+        if strategy.position_size > 0
+            strategy.close_all('Controller 1 - Close longs')
+            array.clear(opened_long)
+    if (plugin_controller_1_long == 2)
+        canEntryLong := false
+    if (plugin_controller_1_long == 3)
+        canExitLong := false
+    if (plugin_controller_1_long == 4) and enabled
+        strategy.entry('Controller 1 - Long', strategy.long)
+    if (plugin_controller_1_short == 1)
+        canEntryShort := false
+        if strategy.position_size < 0
+            strategy.close_all('Controller 1 - Close shorts')
+            array.clear(opened_short)
+    if (plugin_controller_1_short == 2)
+        canEntryShort := false
+    if (plugin_controller_1_short == 3)
+        canExitShort := false
+    if (plugin_controller_1_short == 4) and enabled
+        strategy.entry('Controller 1 - Short', strategy.short)
+if plugin_controller_2_active
+    if (plugin_controller_2_long == 1)
+        canEntryLong := false
+        if strategy.position_size > 0
+            strategy.close_all('Controller 2 - Close longs')
+            array.clear(opened_long)
+    if (plugin_controller_2_long == 2)
+        canEntryLong := false
+    if (plugin_controller_2_long == 3)
+        canExitLong := false
+    if (plugin_controller_2_long == 4) and enabled
+        strategy.entry('Controller 2 - Long', strategy.long)
+    if (plugin_controller_2_short == 1)
+        canEntryShort := false
+        if strategy.position_size < 0
+            strategy.close_all('Controller 2 - Close shorts')
+            array.clear(opened_short)
+    if (plugin_controller_2_short == 2)
+        canEntryShort := false
+    if (plugin_controller_2_short == 3)
+        canExitShort := false
+    if (plugin_controller_2_short == 4) and enabled
+        strategy.entry('Controller 2 - Short', strategy.short)
+if plugin_controller_3_active
+    if (plugin_controller_3_long == 1)
+        canEntryLong := false
+        if strategy.position_size > 0
+            strategy.close_all('Controller 3 - Close longs')
+            array.clear(opened_long)
+    if (plugin_controller_3_long == 2)
+        canEntryLong := false
+    if (plugin_controller_3_long == 3)
+        canExitLong := false
+    if (plugin_controller_3_long == 4) and enabled
+        strategy.entry('Controller 3 - Long', strategy.long)
+    if (plugin_controller_3_short == 1)
+        canEntryShort := false
+        if strategy.position_size < 0
+            strategy.close_all('Controller 3 - Close shorts')
+            array.clear(opened_short)
+    if (plugin_controller_3_short == 2)
+        canEntryShort := false
+    if (plugin_controller_3_short == 3)
+        canExitShort := false
+    if (plugin_controller_3_short == 4) and enabled
+        strategy.entry('Controller 3 - Short', strategy.short)
+grid_level(number) =>
+    float result = 0
+    result := grid_high - grid_space * number
+    result
+exit_short(level) =>
+    float result = grid_level(level + 1)
+    if (exit_mode == 'Open trades')
+        result := strategy.opentrades.entry_price(strategy.opentrades - 1) * (1 - ((grid_high - grid_low) / grid_high) * (1.00 / grids_count))
+    if (em_positions == 'Increase with positions')
+        result := result + (strategy.opentrades * (grid_space * em_positions_multipler))
+    if (em_positions == 'Decrease with positions')
+        result := result - (strategy.opentrades * (grid_space * em_positions_multipler))
+    if (em_time == 'Increase with time') and barssince_last_trade != 0
+        result := result + (barssince_last_trade * (grid_space * em_time_multipler))
+    if (em_time == 'Decrease with time') and barssince_last_trade != 0
+        result := result - (barssince_last_trade * (grid_space * em_time_multipler))
+    result
+exit_long(level) =>
+    float result = grid_level(level - 1)
+    if (exit_mode == 'Open trades')
+        result := strategy.opentrades.entry_price(strategy.opentrades - 1) * (1 + ((grid_high - grid_low) / grid_high) * (1.00 / grids_count))
+    if (em_positions == 'Increase with positions')
+        result := result + (strategy.opentrades * (grid_space * em_positions_multipler))
+    if (em_positions == 'Decrease with positions')
+        result := result - (strategy.opentrades * (grid_space * em_positions_multipler))
+    if (em_time == 'Increase with time') and barssince_last_trade != 0
+        result := result + (barssince_last_trade * (grid_space * em_time_multipler))
+    if (em_time == 'Decrease with time') and barssince_last_trade != 0
+        result := result - (barssince_last_trade * (grid_space * em_time_multipler))
+    result
+if runtime and close < grid_high and close > grid_low
+    for i = 1 to grids_count
+        if ((entry_direction == 'Both' and grid_level(i) > grid_middle) or entry_direction == 'Shorts')
+            if (entry_mode == "Burst" or (entry_mode == "Default" and not array.includes(opened_short, i))) and entry_source_short > grid_level(i) and entry_source_short[1] < grid_level(i) and canEntry and canEntryShort and enabled
+                array.push(opened_short, i)
+                array.clear(opened_long)
+                strategy.entry(id = "Short " + str.tostring(i), direction = strategy.short)
+        if (exit_mode == 'Trailing')
+            strategy.exit("Trailing Short " + str.tostring(i), "Short " + str.tostring(i),  trail_points = exit_trailing_points, trail_offset = exit_trailing_offset)
+        else if exit_source_short < exit_short(i) and close > open and canExit and canExitShort
+            int index = array.indexof(opened_short, i)
+            if index >= 0
+                array.remove(opened_short, index)
+                strategy.close("Short " + str.tostring(i), "Close short " + str.tostring(i))
+        if ((entry_direction == 'Both' and grid_level(i) < grid_middle) or entry_direction == 'Longs')
+            if (entry_mode == "Burst" or (entry_mode == "Default" and not array.includes(opened_long, i)))  and entry_source_long < grid_level(i) and entry_source_long[1] > grid_level(i) and canEntry and canEntryLong and enabled
+                array.push(opened_long, i)
+                array.clear(opened_short)
+                strategy.entry(id = "Long " + str.tostring(i), direction = strategy.long)
+        if (exit_mode == 'Trailing')
+            strategy.exit("Trailing Long " + str.tostring(i), "Long " + str.tostring(i),  trail_points = exit_trailing_points, trail_offset = exit_trailing_offset)
+        else if exit_source_long > exit_long(i) and close < open and canExit and canExitLong
+            int index = array.indexof(opened_long, i)
+            if index >= 0
+                array.remove(opened_long, index)
+                strategy.close("Long " + str.tostring(i), "Close long " + str.tostring(i))
+instant_close = 0.0
+if instant_close[1] != instant_close
+    instant_close := instant_close[1]
+if (entry_first == "Instant") and strategy.position_size == 0 and barssince_runtime == 1 and close < grid_high and close > grid_low
+    if  entry_direction == 'Both'
+        if close < grid_middle
+            strategy.entry('Long Instant', strategy.long)
+            array.push(opened_long, 0)
+            instant_close := close + grid_space
+        if close > grid_middle
+            array.push(opened_short, 0)
+            strategy.entry('Short Instant', strategy.short)
+            instant_close := close - grid_space
+    if  entry_direction == 'Longs'
+        strategy.entry('Long Instant', strategy.long)
+        array.push(opened_long, 0)
+        instant_close := close + grid_space
+    if  entry_direction == 'Short'
+        array.push(opened_short, 0)
+        strategy.entry('Short Instant', strategy.short)
+        instant_close := close - grid_space
+if array.includes(opened_long, 0 ) and close > instant_close
+    strategy.close('Long Instant', 'Close Long Instant')
+    array.remove(opened_long, 0)
+if array.includes(opened_short, 0 ) and close < instant_close
+    strategy.close('Short Instant', 'Close Short Instant')
+    array.remove(opened_short, 0)
+plot(display_grid_lines ? runtime ? grids_count >= 1  ?  grid_level(1) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 2  ?  grid_level(2) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 3  ?  grid_level(3) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 4  ?  grid_level(4) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 5  ?  grid_level(5) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 6  ?  grid_level(6) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 7  ?  grid_level(7) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 8  ?  grid_level(8) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 9  ?  grid_level(9) : na : na: na, color=color.black , editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 10 ? grid_level(10) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 11 ? grid_level(11) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 12 ? grid_level(12) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 13 ? grid_level(13) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 14 ? grid_level(14) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 15 ? grid_level(15) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 16 ? grid_level(16) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 17 ? grid_level(17) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 18 ? grid_level(18) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 19 ? grid_level(19) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 20 ? grid_level(20) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 21 ? grid_level(21) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 22 ? grid_level(22) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 23 ? grid_level(23) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 24 ? grid_level(24) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 25 ? grid_level(25) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 26 ? grid_level(26) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 27 ? grid_level(27) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 28 ? grid_level(28) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 29 ? grid_level(29) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 30 ? grid_level(30) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 31 ? grid_level(31) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 32 ? grid_level(32) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 33 ? grid_level(33) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 34 ? grid_level(34) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 35 ? grid_level(35) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 36 ? grid_level(36) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 37 ? grid_level(37) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 38 ? grid_level(38) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 39 ? grid_level(39) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 40 ? grid_level(40) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 41 ? grid_level(41) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 42 ? grid_level(42) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 43 ? grid_level(43) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 44 ? grid_level(44) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 45 ? grid_level(45) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 46 ? grid_level(46) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 47 ? grid_level(47) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 48 ? grid_level(48) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 49 ? grid_level(49) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot(display_grid_lines ? runtime ? grids_count >= 50 ? grid_level(50) : na : na: na, color=color.black, editable = false, display = display.pane)
+plot_grid_high = plot(runtime ? grid_high : na, style=plot.style_line, linewidth = 2, color=color.green, title="Grid range high",  display = display.all)
+plot_grid_middle = plot(runtime ? grid_middle : na, style=plot.style_line, linewidth = 2, color=color.gray, title="Grid range low",  display = display.pane)
+plot_grid_low = plot(runtime ? grid_low : na, style=plot.style_line, linewidth = 2, color=color.red, title="Grid range low",  display = display.all)
+candles_color = display_candles ? strategy.position_size == 0 ? color.gray : strategy.position_size > 0 ? color.green : strategy.position_size < 0 ? color.red : na : na
+plotcandle(open, high, low, close, color=candles_color,  bordercolor =  candles_color, wickcolor =  candles_color, display = display.pane)
+short_area_color = color.new(color.red, 85)
+if entry_direction == 'Longs'
+    short_area_color := color.new(color.green, 85)
+fill(plot_grid_high, plot_grid_middle, color = short_area_color)
+long_area_color = color.new(color.green, 85)
+if entry_direction == 'Shorts'
+    long_area_color := color.new(color.red, 85)
+fill(plot_grid_middle, plot_grid_low,  color = long_area_color)
+// ############################################################################
+// POSITIONS TABLE
+// ############################################################################
+opened_positions_table = table.new(position=position.bottom_left, columns=99, rows=99, bgcolor=color.new(#000000, 0), frame_width=1, border_width=1)
+if display_table_positions
+    if strategy.position_size < 0 and array.size(opened_short)  != 0
+        for i = 1 to array.size(opened_short)
+            id = array.get(opened_short, i -1)
+            if id != 0
+                table.cell(opened_positions_table, i, 0, "Short " + str.tostring(id), text_color=color.white, text_size=size.tiny, bgcolor = color.red)
+                table.cell(opened_positions_table, i, 1, "Open: " + str.tostring(math.round(grid_level(i), decimal_places)), text_color=color.white, text_size=size.tiny, bgcolor = color.black)
+                table.cell(opened_positions_table, i, 2, "Close: " + str.tostring(math.round(exit_short(i), decimal_places)), text_color=color.white, text_size=size.tiny, bgcolor = color.black)
+            else
+                table.cell(opened_positions_table, i, 0, "Short Instant", text_color=color.white, text_size=size.tiny, bgcolor = color.red)
+    if strategy.position_size > 0 and array.size(opened_long)  != 0
+        for i = 1 to array.size(opened_long)
+            id = array.get(opened_long, i -1)
+            if id != 0
+                table.cell(opened_positions_table, i, 0, "Long " + str.tostring(id), text_color=color.white, text_size=size.tiny, bgcolor = color.green)
+                table.cell(opened_positions_table, i, 1, "Open: " + str.tostring(math.round(grid_level(i), decimal_places)), text_color=color.white, text_size=size.tiny, bgcolor = color.black)
+                table.cell(opened_positions_table, i, 2, "Close: " + str.tostring(math.round(exit_long(i), decimal_places)), text_color=color.white, text_size=size.tiny, bgcolor = color.black)
+            else
+                table.cell(opened_positions_table, i, 0, "Long Instant", text_color=color.white, text_size=size.tiny, bgcolor = color.green)
