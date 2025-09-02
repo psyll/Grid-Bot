@@ -2,7 +2,8 @@
 // Author: Psyll.com
 // Email: info@psyll.com
 // Website: https://psyll.com
-// Copyright: Copyright © 2025 psyll.com. All rights reserved.
+// Copyright: (c) 2025 Psyll.com.
+
 strategy(
      title = 'Grid Bot [psyll]',
      overlay = true,
