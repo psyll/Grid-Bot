@@ -150,7 +150,7 @@ Facilitate granular order management, including opening, closing or blocking tra
 
 ## Live Trading via Psyll.com Webhooks
 
-:link: Visit [ Psyll.com Webhook](https://psyll.com/en/webhook) page at https://psyll.com/en/webhoo
+:link: Visit [Psyll.com Webhook](https://psyll.com/en/webhook) - https://psyll.com/en/webhook
 
 Grid Bot can be extended beyond simulation and backtesting by integrating it with live trading environments through TradingViews alert system and Psyll.com's webhook functionality. This integration enables the execution of real orders on supported exchanges without incurring additional costs for basic usage, leveraging a free tier that facilitates automated trading strategies in production settings.
 
